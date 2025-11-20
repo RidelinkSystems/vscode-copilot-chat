@@ -4,10 +4,25 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { AuthenticationGetSessionOptions, AuthenticationSession, AuthenticationSessionsChangeEvent, authentication } from 'vscode';
+import { mixin } from '../../../util/vs/base/common/objects';
 import { URI } from '../../../util/vs/base/common/uri';
 import { AuthPermissionMode, AuthProviderId, ConfigKey, IConfigurationService } from '../../configuration/common/configurationService';
 import { GITHUB_SCOPE_ALIGNED, GITHUB_SCOPE_READ_USER, GITHUB_SCOPE_USER_EMAIL, MinimalModeError } from '../common/authentication';
-import { mixin } from '../../../util/vs/base/common/objects';
+
+// 🔧 MOCK AUTHENTICATION MODE FOR LOCAL TESTING
+// Set this to true to bypass GitHub authentication
+const MOCK_AUTH_MODE = true;
+
+// Mock session for local testing
+const MOCK_SESSION: AuthenticationSession = {
+	id: 'mock-adrian-copilot-session',
+	accessToken: 'mock_token_adrian_copilot_local_dev_' + Date.now(),
+	account: {
+		id: 'mock-user-adrian',
+		label: 'Adrian Co-pilot Test User'
+	},
+	scopes: ['user:email', 'read:user', 'repo', 'workflow']
+};
 
 export const SESSION_LOGIN_MESSAGE = 'You are not signed in to GitHub. Please sign in to use Copilot.';
 // These types are subsets of the "real" types AuthenticationSessionAccountInformation and
@@ -31,6 +46,12 @@ export function authProviderId(configurationService: IConfigurationService): Aut
 }
 
 async function getAuthSession(providerId: string, defaultScopes: string[], getSilentSession: () => Promise<AuthenticationSession | undefined>, options: AuthenticationGetSessionOptions = {}) {
+	// 🔧 Return mock session if in mock mode
+	if (MOCK_AUTH_MODE) {
+		console.log('🔧 Adrian Co-pilot: Using mock authentication for local testing');
+		return MOCK_SESSION;
+	}
+
 	const accounts = await authentication.getAccounts(providerId);
 	if (!accounts.length) {
 		return await authentication.getSession(providerId, defaultScopes, options);
